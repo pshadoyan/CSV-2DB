@@ -1,6 +1,5 @@
 from secrets import file_, host, dbname, user, passw
 import pandas as pd
-import numpy as np
 import os
 
 #postgres wrapper
