@@ -34,7 +34,7 @@ def create_dbt_format(df, dtype_mappings):
 
     return f_columns
 
-def db_connection(host, db, user, passw):
+def db_upload(host, db, user, passw, table_f, df, table_name):
 
     conn = psycopg2.connect(database=db,
                             user=user,
@@ -44,12 +44,37 @@ def db_connection(host, db, user, passw):
 
     print('opened database successfully')
 
-    #returns a cursor to perform database operations
-    return conn.cursor()
+    #returns a cursor to perform database operations, a cursor allows 
+    #PostgreSQL commands in a successful database connected session
+    cursor = conn.cursor()
 
+    #If there is an existing database of the same name, remove it
+    cursor.execute("drop table if exists "+table_name+";")
+
+    cursor.execute("create table customer_info ("+table_f+");")
+
+    df.to_csv('customer_info.csv', header=df.columns, index=False, encoding='utf-8')
+
+    try:
+        c_info = open('customer_info.csv')
+    except:
+        print('file missing')
+    
+    SQL_c = """
+    copy customer_info from STDIN with
+        CSV
+        HEADER
+        DELIMITER AS ','
+    """
+
+    cursor.copy_expert(sql=SQL_c, file=c_info)
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    
 if __name__ == "__main__":
     df = pre_proc(file_)
     table_f = create_dbt_format(df, dtype_mappings)
 
-    print(host, dbname, user, passw)
-    cursor = db_connection(host, dbname, user, passw)
+    db_upload(host, dbname, user, passw, table_f, df, "customer_info")
