@@ -8,7 +8,7 @@ import psycopg2
 
 #Mapping between dataframe dtypes and postgres
 dtype_mappings = {
-    'int64': 'int'
+    'int64': 'int',
     'object': 'varchar'
 }
 
@@ -22,6 +22,12 @@ def preproc(file_):
                     .replace("%","") for x in df.columns]
 
     print(df.dtypes)
+    return df
+
+def create_dbt_format(df, dtype_mappings):
+    f_columns = ", ".join("{} {}".format(n, d) for (n, d) in zip(df.columns, df.dtypes.replace(dtype_mappings)))
+    print(f_columns)
 
 if __name__ == "__main__":
-    preproc(file_)
+    df = preproc(file_)
+    create_dbt_format(df, dtype_mappings)
