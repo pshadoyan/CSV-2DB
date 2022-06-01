@@ -27,6 +27,7 @@ def pre_proc(file_):
     print(df.dtypes)
     return df
 
+#utility function to format the name and types of the columns
 def create_dbt_format(df, dtype_mappings):
     #format in a sql-like structure, while replacing the dataframe datatypes into postgres datatypes
     f_columns = ", ".join("{} {}".format(n, d) for (n, d) in zip(df.columns, df.dtypes.replace(dtype_mappings)))
@@ -36,6 +37,7 @@ def create_dbt_format(df, dtype_mappings):
 
 def db_upload(host, db, user, passw, table_f, df, table_name):
 
+    #connect to the Amazon RDS via postgresql wrapper
     conn = psycopg2.connect(database=db,
                             user=user,
                             password=passw,
@@ -53,6 +55,8 @@ def db_upload(host, db, user, passw, table_f, df, table_name):
 
     cursor.execute("create table customer_info ("+table_f+");")
 
+    #Convert the dataframe into a local csv file
+    #index=False, ensure there isn't a duplicate csv index
     df.to_csv('customer_info.csv', header=df.columns, index=False, encoding='utf-8')
 
     try:
@@ -67,9 +71,14 @@ def db_upload(host, db, user, passw, table_f, df, table_name):
         DELIMITER AS ','
     """
 
+    #this allows a user-composed copy statement to be submitted
+    #COPY moves data between postgresql tables and standard file-system files
     cursor.copy_expert(sql=SQL_c, file=c_info)
 
+    #commits any pending transaction to the database
+    #if this isn't called, the effect of any data manipulation will be lost
     conn.commit()
+
     cursor.close()
     conn.close()
     
